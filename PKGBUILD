@@ -2,34 +2,49 @@
 # Contributor: Boohbah <boohbah at gmail.com>
 # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 
-pkgbase=linux-git
-pkgver=5.10rc2.r81.g4ef8451b3326
+pkgbase=linux-rust-git
+pkgver=5.19.0.rc6.g3d414ec41f7f
 pkgrel=1
-pkgdesc='Linux (Git)'
-url="https://www.kernel.org"
+pkgdesc='Rust for Linux (Git)'
+url="https://github.com/Rust-for-Linux/linux"
 arch=(x86_64)
 license=(GPL2)
 makedepends=(
   bc kmod libelf git pahole
   xmlto python-sphinx python-sphinx_rtd_theme graphviz imagemagick
+  rustup
 )
 options=('!strip')
 _srcname=linux
 source=(
-  'git+https://kernel.googlesource.com/pub/scm/linux/kernel/git/torvalds/linux'
-  config         # the main kernel config file
+  'git+https://github.com/Rust-for-Linux/linux'
+  'config'         # the main kernel config file
 )
 sha256sums=('SKIP'
-            'a01c8ef3463c239f868fa679006bc591b1a088274dde8c9c162440dd0547ccad')
+            'SKIP')
 
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
 export KBUILD_BUILD_TIMESTAMP="$(date -Ru${SOURCE_DATE_EPOCH:+d @$SOURCE_DATE_EPOCH})"
 
 pkgver() {
+  get_metadata() {
+    head -n5 Makefile
+  }
+
+  extract_value() {
+    grep "^${1}" | sed -e "s/${1} = //g"
+  }
+
   cd $_srcname
 
-  git describe --long | sed -E 's/^v//;s/([^-]*-g)/r\1/;s/-/./g;s/\.rc/rc/'
+  VERSION="$(get_metadata | extract_value VERSION)"
+  PATCHLEVEL="$(get_metadata | extract_value PATCHLEVEL)"
+  SUBLEVEL="$(get_metadata | extract_value SUBLEVEL)"
+  EXTRAVERSION="$(get_metadata | extract_value EXTRAVERSION | sed -e 's/-//g')"
+  COMMIT="$(git rev-parse --short HEAD)"
+
+  echo "${VERSION}.${PATCHLEVEL}.${SUBLEVEL}.${EXTRAVERSION}.g${COMMIT}"
 }
 
 prepare() {
@@ -51,16 +66,20 @@ prepare() {
 
   echo "Setting config..."
   cp ../config .config
-  make olddefconfig
+  make LLVM=1 olddefconfig
 
-  make -s kernelrelease > version
+  #rustup override set $(./scripts/min-tool-version.sh rustc)
+  rustup override set nightly
+  make LLVM=1 rustavailable
+
+  make LLVM=1 -s kernelrelease > version
   echo "Prepared $pkgbase version $(<version)"
 }
 
 build() {
   cd $_srcname
-  make all
-  make htmldocs
+  make LLVM=1 all
+  #make htmldocs
 }
 
 _package() {
@@ -108,6 +127,9 @@ _package-headers() {
 
   # add xfs and shmem for aufs building
   mkdir -p "$builddir"/{fs/xfs,mm}
+
+  echo "Installing Rust files..."
+  cp -t "$builddir/" -a rust
 
   echo "Installing headers..."
   cp -t "$builddir" -a include
@@ -188,7 +210,8 @@ _package-docs() {
 }
 
 
-pkgname=("$pkgbase" "$pkgbase-headers" "$pkgbase-docs")
+#pkgname=("$pkgbase" "$pkgbase-headers" "$pkgbase-docs")
+pkgname=("$pkgbase" "$pkgbase-headers")
 for _p in "${pkgname[@]}"; do
   eval "package_$_p() {
     $(declare -f "_package${_p#$pkgbase}")

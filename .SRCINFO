@@ -1,6 +1,6 @@
 pkgbase = linux-rust-git
 	pkgdesc = Rust for Linux (Git)
-	pkgver = 5.19.0.rc6.g856eb0eff60a
+	pkgver = 5.19.0.g459035ab65c0
 	pkgrel = 1
 	url = https://github.com/Rust-for-Linux/linux
 	arch = x86_64
@@ -15,6 +15,7 @@ pkgbase = linux-rust-git
 	makedepends = python-sphinx_rtd_theme
 	makedepends = graphviz
 	makedepends = imagemagick
+	makedepends = rustup
 	options = !strip
 	source = git+https://github.com/Rust-for-Linux/linux
 	source = config

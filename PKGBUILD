@@ -3,7 +3,7 @@
 # Contributor: Jan Alexander Steffens (heftig) <jan.steffens@gmail.com>
 
 pkgbase=linux-rust-git
-pkgver=5.19.0.rc6.g3d414ec41f7f
+pkgver=5.19.0.g459035ab65c0
 pkgrel=1
 pkgdesc='Rust for Linux (Git)'
 url="https://github.com/Rust-for-Linux/linux"
@@ -33,7 +33,7 @@ pkgver() {
   }
 
   extract_value() {
-    grep "^${1}" | sed -e "s/${1} = //g"
+    grep "^${1}" | sed -e "s/${1} =//g" | sed -e 's/ //g'
   }
 
   cd $_srcname
@@ -44,7 +44,11 @@ pkgver() {
   EXTRAVERSION="$(get_metadata | extract_value EXTRAVERSION | sed -e 's/-//g')"
   COMMIT="$(git rev-parse --short HEAD)"
 
-  echo "${VERSION}.${PATCHLEVEL}.${SUBLEVEL}.${EXTRAVERSION}.g${COMMIT}"
+  if [ "${EXTRAVERSION}" = "" ]; then
+    echo "${VERSION}.${PATCHLEVEL}.${SUBLEVEL}.g${COMMIT}"
+  else
+    echo "${VERSION}.${PATCHLEVEL}.${SUBLEVEL}.${EXTRAVERSION}.g${COMMIT}"
+  fi
 }
 
 prepare() {
